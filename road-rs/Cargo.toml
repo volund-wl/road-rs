@@ -1,0 +1,21 @@
+[package]
+name = "road-rs"
+version = "0.1.0"
+edition = "2021"
+metadata.nix.build = true
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+dyn-clone = "1"
+lazy_static = "1"
+xdg = "2"
+abi_stable = "0.11"
+#road_hyprland = { package = "road-plugin-hyprland", path = "../road-hyprland/regular", optional = true }
+road-types = { path = "../road-types" }
+road-macros = { path = "../road-macros" }
+hyprland = { git = "https://github.com/hyprland-community/hyprland-rs.git" }
+road-plugins = { path = "../road-plugins" }
+
+[features]
+default = ["hyprland"]
+hyprland = ["road-plugins/hyprland"]
