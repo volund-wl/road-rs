@@ -1,0 +1,9 @@
+[workspace]
+members = [
+	"road-rs",
+	"road-types",
+	"road-plugins-dynamic/hyprland",
+	"road-plugins-dynamic/sway",
+	"road-macros",
+	"road-plugins"
+] 
