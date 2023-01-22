@@ -11,7 +11,10 @@ abi_stable = "0.11"
 road-types = { path = "../road-types" }
 road-macros = { path = "../road-macros" }
 hyprland = { git = "https://github.com/hyprland-community/hyprland-rs.git", optional = true }
+swayipc = { optional = true }
+lazy_static = "1.4"
 
 [features]
-default = ["hyprland"]
+default = ["hyprland", "sway"]
 hyprland = ["dep:hyprland"]
+sway = ["dep:swayipc"]

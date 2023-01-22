@@ -17,5 +17,6 @@ hyprland = { git = "https://github.com/hyprland-community/hyprland-rs.git" }
 road-plugins = { path = "../road-plugins" }
 
 [features]
-default = ["hyprland"]
+default = []
 hyprland = ["road-plugins/hyprland"]
+sway = ["road-plugins/sway"]

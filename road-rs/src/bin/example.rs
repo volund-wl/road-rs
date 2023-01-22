@@ -1,5 +1,5 @@
 use road_rs::caller;
 
 fn main() {
-    caller::data::Workspaces::get();
+    caller::data::ActiveWorkspace::get();
 }

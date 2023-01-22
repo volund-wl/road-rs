@@ -6,7 +6,7 @@ use abi_stable::{
     std_types::{ROk, RResult},
 };
 
-pub use road_plugins::hypr::*;
+pub use road_plugins::sway::*;
 use road_types::*;
 
 #[export_root_module]
@@ -16,6 +16,6 @@ fn instantiate_root_module() -> PluginRef {
 
 #[sabi_extern_fn]
 pub fn new() -> RResult<PluginType<'static>, Error> {
-    println!("Loaded dynamic HyprRoad");
-    ROk(Plugin_TO::from_value(HyprRoadPlugin::init(), TD_Opaque))
+    println!("Loaded dynamic SwayRoad");
+    ROk(Plugin_TO::from_value(SwayRoadPlugin::init(), TD_Opaque))
 }

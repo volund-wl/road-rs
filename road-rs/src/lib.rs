@@ -8,7 +8,12 @@ pub mod types {
 
 #[cfg(feature = "hyprland")]
 mod hypr_road {
-    pub use road_plugins::hypr_road::*;
+    pub use road_plugins::hypr::*;
+}
+
+#[cfg(feature = "sway")]
+mod hypr_road {
+    pub use road_plugins::sway::*;
 }
 
 mod plugin_loader {
@@ -24,27 +29,48 @@ mod plugin_loader {
         plugins
     }
 
-    pub fn load_all<'a>() -> col::BTreeMap<String, PluginWrapper<'a>> {
+    #[cfg(not(feature = "hyprland"))]
+    pub fn load_all() -> col::BTreeMap<String, PluginType<'static>> {
         let mut map = col::BTreeMap::new();
         let plugins_paths = get_all_plugin_paths();
-        map.insert("hyprland".to_string(), load_hyprland_plugin());
+        #[cfg(feature = "hyprland")]
+        map.insert("hyprland-builtin".to_string(), load_hyprland_plugin());
+        #[cfg(feature = "sway")]
+        map.insert("sway-builtin".to_string(), load_sway_plugin());
         for i in plugins_paths {
             let name: &str = match i.file_name() {
                 Some(name) => name.to_str().expect("Couldn't convert a OsStr to a &str"),
                 None => panic!("Broken plugin file name"),
             };
-            map.insert(name.to_string(), load_plugin_by_path(&i));
+            let plugin = load_plugin_by_path(i.clone());
+            println!("Loaded External Plugin: {:#?}", plugin.clone().info());
+            map.insert(name.to_string(), plugin);
         }
         map
     }
 
-    fn load_hyprland_plugin<'a>() -> PluginWrapper<'a> {
+    #[cfg(feature = "hyprland")]
+    fn load_hyprland_plugin() -> PluginType<'static> {
+        use abi_stable::sabi_trait::TD_Opaque;
         let plugin = hypr_road::HyprRoadPlugin::init();
-        plugin
+        Plugin_TO::from_value(plugin, TD_Opaque)
     }
-    fn load_plugin_by_path<'a>(_path: &path::Path) -> PluginWrapper<'a> {
-        let plugin = hypr_road::HyprRoadPlugin::init();
-        plugin
+    #[cfg(feature = "sway")]
+    fn load_sway_plugin() -> PluginType<'static> {
+        use abi_stable::sabi_trait::TD_Opaque;
+        let plugin = sway_road::SwayRoadPlugin::init();
+        Plugin_TO::from_value(plugin, TD_Opaque)
+    }
+
+    fn load_plugin_by_path(path: path::PathBuf) -> PluginType<'static> {
+        //let plugin = hypr_road::HyprRoadPlugin::init();
+        let header =
+            abi_stable::library::lib_header_from_path(&path).expect("Error loading plugin");
+        header
+            .init_root_module::<PluginRef>()
+            .expect("Error initializing plugin")
+            .field_0()()
+        .expect("Error getting plugin from PluginRef")
     }
 }
 
@@ -53,7 +79,7 @@ pub mod caller {
     use std::env::{var, VarError};
     use types::*;
     fn get_best_plugin<'a>() -> PluginType<'a> {
-        let desk = match var("XDG_CURRENT_DESKTOP") {
+        let _desk = match var("XDG_CURRENT_DESKTOP") {
             Ok(name) => name,
             Err(err) => match err {
                 VarError::NotPresent => {
@@ -65,15 +91,14 @@ pub mod caller {
         let plugins = plugin_loader::load_all();
         let mut plugin: Option<PluginType> = None;
         for (_, v) in plugins.iter() {
-            if v.xdg_current_desktop == desk {
-                plugin = Some(v.clone().plugin);
+            if v.clone().should_run() {
+                plugin = Some(v.clone());
                 break;
             } else {
                 continue;
             }
         }
 
-        //let plugin = example_plugin::ExamplePlugin::init();
         match plugin {
             Some(plug) => plug,
             None => panic!("No suitable plugin was found!"),
@@ -83,11 +108,11 @@ pub mod caller {
     pub mod data {
         use super::*;
 
-        pub struct Workspaces;
-        impl Workspaces {
+        pub struct ActiveWorkspace;
+        impl ActiveWorkspace {
             pub fn get() {
                 let plugin = get_best_plugin();
-                let out = plugin.fetch_comp_info(CompInfoTypes::Workspaces);
+                let out = plugin.fetch_comp_info(CompInfoTypes::ActiveWorkspace);
                 println!("{out:#?}");
             }
         }
