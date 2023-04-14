@@ -105,15 +105,47 @@ pub mod caller {
         }
     }
 
+    pub mod listeners {
+        use super::*;
+        use abi_stable::sabi_trait::{TD_CanDowncast, TD_Opaque};
+
+        pub struct Listener;
+        impl Listener {
+            pub fn start(listen: impl Listeners + 'static) {
+                let plugin = get_best_plugin();
+                let listener = ListenersObj::from_value(listen, TD_Opaque);
+                plugin.listener(listener);
+            }
+            pub async fn start_async(listen: impl ListenersAsync + 'static) {
+                let plugin = get_best_plugin();
+                let listener: ListenersAsyncObj = ListenersAsyncObj::from_value(listen, TD_Opaque);
+                plugin.listener_async(&list_pt);
+            }
+        }
+    }
+
     pub mod data {
         use super::*;
 
         pub struct ActiveWorkspace;
         impl ActiveWorkspace {
-            pub fn get() {
+            pub fn get() -> types::Workspace {
                 let plugin = get_best_plugin();
                 let out = plugin.fetch_comp_info(CompInfoTypes::ActiveWorkspace);
-                println!("{out:#?}");
+                match out {
+                    CompInfo::ActiveWorkspace(d) => d,
+                    _ => unreachable!(),
+                }
+            }
+            pub async fn get_async() -> types::Workspace {
+                let plugin = get_best_plugin();
+                let out = plugin
+                    .fetch_comp_info_async(CompInfoTypes::ActiveWorkspace)
+                    .await;
+                match out {
+                    CompInfo::ActiveWorkspace(d) => d,
+                    _ => unreachable!(),
+                }
             }
         }
     }

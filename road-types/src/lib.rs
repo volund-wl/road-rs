@@ -1,13 +1,10 @@
 #![allow(non_snake_case, non_upper_case_globals, non_camel_case_types)]
 
 use abi_stable::{
-    declare_root_module_statics,
-    library::RootModule,
-    package_version_strings, sabi_trait,
-    sabi_types::VersionStrings,
-    std_types::{RBox, RIoError, ROption, RResult, RString, RVec},
-    StableAbi,
+    declare_root_module_statics, library::RootModule, package_version_strings, sabi_trait,
+    sabi_types::VersionStrings, std_types::*, StableAbi,
 };
+use async_ffi::FfiFuture;
 
 #[repr(C)]
 #[derive(StableAbi, Debug)]
@@ -28,11 +25,6 @@ impl std::fmt::Display for Error {
             //Self::LibraryError(e) => e.to_string()
         })
     }
-}
-
-pub enum EventTypes {
-    WorkspaceChanged(),
-    ActiveM,
 }
 
 #[derive(Debug, Clone, StableAbi)]
@@ -77,8 +69,50 @@ pub struct PluginInfo {
 }
 
 #[sabi_trait]
+pub trait Listeners: Clone + Sync + Send {
+    fn active_work(self, _work: Workspace) {}
+}
+
+pub type ListenersObj = Listeners_TO<'static, RBox<()>>;
+
+macro_rules! empty_future {
+    () => {{
+        async fn future() {}
+        FfiFuture::new(future())
+    }};
+}
+
+// macro_rules! init_fn {
+//     (async;$name:ident,$param:ident,$ptype:ty) => {{
+//         fn $name(self, $param: $ptype) -> FfiFuture<()> {
+//             async fn _future() {}
+//             FfiFuture::new(_future())
+//         }
+//     }};
+// }
+
+#[sabi_trait]
+pub trait ListenersAsync: Clone + Sync + Send {
+    fn active_work(self, _work: Workspace) -> FfiFuture<()> {
+        empty_future!()
+    }
+    fn active_mon(self, _mon: Workspace) -> FfiFuture<()> {
+        empty_future!()
+    }
+    fn active_win(self, _win: Window) -> FfiFuture<()> {
+        empty_future!()
+    }
+    //init_fn! {async;active_win,_win,Window}
+}
+
+pub type ListenersAsyncObj = ListenersAsync_TO<'static, RBox<()>>;
+
+#[sabi_trait]
 pub trait Plugin: Clone + Sync + Send {
     fn fetch_comp_info(self, dtype: CompInfoTypes) -> CompInfo;
+    fn fetch_comp_info_async(self, dtype: CompInfoTypes) -> FfiFuture<CompInfo>;
+    fn listener(self, listeners: ListenersObj) -> RResult<(), Error>;
+    fn listener_async(self, listeners: &ListenersAsyncObj) -> FfiFuture<()>;
     fn should_run(self) -> bool;
     fn info(self) -> PluginInfo;
 }

@@ -1,32 +1,3 @@
-use async_ffi::FfiFuture;
-use proc_macro::TokenStream;
-use quote::{quote, quote_spanned};
-#[allow(unused)]
-use road_types::{PluginInit, PluginType};
-use syn::{parse_macro_input, spanned::Spanned, DeriveInput};
-
-/// This derive macro adds a easy way to init a plugin, this is mostly in use when loading a plugin
-/// without the FFI barrier. Do keep in mind that this derive only works with unit structs, if
-/// using non unit structs, you'll have to implement PluginInit by yourself
-/// ```rs
-/// #[derive(Clone, PluginInit)]
-/// struct SomePlugin;
-///```
-#[proc_macro_derive(PluginInit)]
-pub fn init_plug(input: TokenStream) -> TokenStream {
-    let input = parse_macro_input!(input as DeriveInput);
-    let name = input.ident;
-    let expanded = quote! {
-        impl PluginInit for #name {
-            fn init() -> PluginType<'static> {
-                use abi_stable::type_level::downcasting::TD_CanDowncast;
-                road_types::Plugin_TO::from_value(Self, TD_CanDowncast)
-            }
-        }
-    };
-    proc_macro::TokenStream::from(expanded)
-}
-
 /// This attribute macro wraps a async function to make it ffi safe.
 /// > disclaimer that tokio doesnt
 /// work over the binary boundary, so you can't connect the runtimes unless you patch tokio itself
@@ -37,10 +8,10 @@ pub fn async_fn(_attr: TokenStream, item: TokenStream) -> TokenStream {
 
     let ret_raw = &input.sig.output;
     let ret = match ret_raw {
-        ReturnType::Default => quote!(-> FfiFuture<()>),
+        ReturnType::Default => quote!(-> BoxFuture<'static, ()>),
         ReturnType::Type(_, t) => {
             let ty = *t.clone();
-            quote!(-> FfiFuture<#ty>)
+            quote!(-> BoxFuture<'static, #ty>)
         }
     };
     let inputs = &input.sig.inputs;
@@ -64,11 +35,11 @@ pub fn async_fn(_attr: TokenStream, item: TokenStream) -> TokenStream {
     let result = quote! {
         #(#attrs)*
         #vis fn #name(#inputs) #ret {
-            use async_ffi::{FutureExt, FfiFuture};
+            use std::future::IntoFuture;
             let future = async move {
                 #body
             };
-            future.into_ffi()
+            BoxFuture::new(future.into_future())
         }
 
     };

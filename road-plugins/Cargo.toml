@@ -10,11 +10,17 @@ metadata.nix.build = true
 abi_stable = "0.11"
 road-types = { path = "../road-types" }
 road-macros = { path = "../road-macros" }
-hyprland = { git = "https://github.com/hyprland-community/hyprland-rs.git", optional = true }
+hyprland = { path = "../../hyprland-rs/", optional = true, features = ["async-std", "data", "listener"], default-features = false }
+		#git = "https://github.com/hyprland-community/hyprland-rs.git", 
+
 swayipc = { optional = true }
+swayipc-async = { optional = true }
 lazy_static = "1.4"
+async-ffi = { version = "0.4.1", features = ["abi_stable", "macros"] }
+#futures = "0.3"
+
 
 [features]
 default = ["hyprland", "sway"]
 hyprland = ["dep:hyprland"]
-sway = ["dep:swayipc"]
+sway = ["dep:swayipc", "dep:swayipc-async"]

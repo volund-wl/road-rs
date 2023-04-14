@@ -5,5 +5,6 @@ members = [
 	"road-plugins-dynamic/hyprland",
 	"road-plugins-dynamic/sway",
 	"road-macros",
-	"road-plugins"
+	"road-plugins",
+	"road-examples"
 ] 

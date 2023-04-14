@@ -13,15 +13,38 @@ pub mod hypr;
 
 pub mod example_plugin {
     use super::*;
-
-    #[derive(Clone)]
+    use async_ffi::FfiFuture;
+    //use road_macros::async_fn;
+    //use async_ffi::{FfiFuture, FutureExt};
+    //use road_types::future::eager::IntoFuture;
+    #[derive(Clone, PluginInit)]
     pub struct ExamplePlugin;
 
     impl Plugin for ExamplePlugin {
+        fn listener(self, _listeners: ListenersObj) -> RResult<(), Error>
+        where
+            Self: Sized,
+        {
+            ROk(())
+        }
+        #[async_fn]
+        async fn listener_async(self, _listeners: &ListenersAsyncObj)
+        where
+            Self: Sized,
+        {
+        }
         fn fetch_comp_info(self, _dtype: CompInfoTypes) -> CompInfo
         where
             Self: Sized,
         {
+            CompInfo::ActiveWorkspace(Workspace {
+                name: RSome("example".into()),
+                id: 64,
+                monitor_name: "eDP-1".into(),
+            })
+        }
+        #[async_fn]
+        async fn fetch_comp_info_async(self, _dtype: CompInfoTypes) -> CompInfo {
             CompInfo::ActiveWorkspace(Workspace {
                 name: RSome("example".into()),
                 id: 64,
@@ -45,9 +68,9 @@ pub mod example_plugin {
             }
         }
     }
-    impl PluginInit for ExamplePlugin {
-        fn init<'a>() -> PluginType<'static> {
-            init_plug!(Self)
-        }
-    }
+    // impl PluginInit for ExamplePlugin {
+    //     fn init<'a>() -> PluginType<'static> {
+    //         init_plug!(Self)
+    //     }
+    // }
 }
